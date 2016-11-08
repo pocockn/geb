@@ -143,6 +143,7 @@ class WaitingContentSpec extends WaitingSpec {
         waitContent.text() == "a"
     }
 
+
 }
 
 class DynamicallySpecifiedContentPage extends Page {
@@ -153,5 +154,6 @@ class StaticallySpecifiedContentPage extends Page {
     static content = {
         waitContent(wait: 1) { $("div") }
         waitContentExplicitlyRequired(wait: 1, required: true) { $("div") }
+        waitVisibleContent(wait: 1, waitCondition: { displayed }) { $("div") }
     }
 }

@@ -22,6 +22,8 @@ import geb.navigator.Navigator
 import geb.navigator.factory.NavigatorFactory
 import geb.waiting.WaitTimeoutException
 
+import static groovy.lang.Closure.DELEGATE_FIRST
+
 class PageContentTemplate {
 
     final Browser browser
@@ -68,10 +70,13 @@ class PageContentTemplate {
             creation
         }
 
-        def wait = config.getWaitForParam(params.wait)
+        def wait = config.getWaitForParam(params.wait || params.waitCondition ? true : false)
         if (wait) {
             try {
-                wait.waitFor(createAction)
+                wait.waitFor {
+                    def element = createAction.call()
+                    waitConditionWithDelegate(element).call(element) ? element : null
+                }
             } catch (WaitTimeoutException e) {
                 if (params.required) {
                     throw e
@@ -80,6 +85,17 @@ class PageContentTemplate {
             }
         } else {
             createAction()
+        }
+    }
+
+    private Closure<?> waitConditionWithDelegate(Object delegate) {
+        if (params.waitCondition) {
+            Closure<?> waitCondition = params.waitCondition.clone()
+            waitCondition.resolveStrategy = DELEGATE_FIRST
+            waitCondition.delegate = delegate
+            waitCondition
+        } else {
+            { -> true }
         }
     }
 
@@ -93,7 +109,7 @@ class PageContentTemplate {
 
     private invokeFactory(Object[] args) {
         factory.delegate = createFactoryDelegate(args)
-        factory.resolveStrategy = Closure.DELEGATE_FIRST
+        factory.resolveStrategy = DELEGATE_FIRST
         factory(*args)
     }
 

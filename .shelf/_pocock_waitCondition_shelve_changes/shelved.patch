@@ -1,0 +1,111 @@
+Index: module/geb-core/src/main/groovy/geb/content/PageContentTemplateParams.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- module/geb-core/src/main/groovy/geb/content/PageContentTemplateParams.groovy	(revision e62c2d52ceafd9bd9601c15c14e3578d93bd7b70)
++++ module/geb-core/src/main/groovy/geb/content/PageContentTemplateParams.groovy	(revision )
+@@ -55,6 +55,8 @@
+      */
+     final toWait
+ 
++    Closure<?> waitCondition
++
+     PageContentTemplateParams(PageContentTemplate owner, Map<String, ?> params) {
+         def paramsToProcess = params == null ? Collections.emptyMap() : new HashMap<String, Object>(params)
+ 
+@@ -83,6 +85,11 @@
+ 
+         wait = paramsToProcess.remove("wait")
+         toWait = paramsToProcess.remove("toWait")
++
++        waitCondition = paramsToProcess.remove("waitCondition") as Closure<?>
++        if (waitCondition && !waitCondition instanceof Closure) {
++            throw new InvalidPageContent("")
++        }
+ 
+         def unrecognizedParams = paramsToProcess.keySet() as TreeSet
+         if (unrecognizedParams) {
+Index: module/geb-core/src/test/groovy/geb/waiting/WaitingContentSpec.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- module/geb-core/src/test/groovy/geb/waiting/WaitingContentSpec.groovy	(revision e62c2d52ceafd9bd9601c15c14e3578d93bd7b70)
++++ module/geb-core/src/test/groovy/geb/waiting/WaitingContentSpec.groovy	(revision )
+@@ -143,6 +143,7 @@
+         waitContent.text() == "a"
+     }
+ 
++
+ }
+ 
+ class DynamicallySpecifiedContentPage extends Page {
+@@ -153,5 +154,6 @@
+     static content = {
+         waitContent(wait: 1) { $("div") }
+         waitContentExplicitlyRequired(wait: 1, required: true) { $("div") }
++        waitVisibleContent(wait: 1, waitCondition: { displayed }) { $("div") }
+     }
+ }
+\ No newline at end of file
+Index: module/geb-core/src/main/groovy/geb/content/PageContentTemplate.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- module/geb-core/src/main/groovy/geb/content/PageContentTemplate.groovy	(revision e62c2d52ceafd9bd9601c15c14e3578d93bd7b70)
++++ module/geb-core/src/main/groovy/geb/content/PageContentTemplate.groovy	(revision )
+@@ -22,6 +22,8 @@
+ import geb.navigator.factory.NavigatorFactory
+ import geb.waiting.WaitTimeoutException
+ 
++import static groovy.lang.Closure.DELEGATE_FIRST
++
+ class PageContentTemplate {
+ 
+     final Browser browser
+@@ -68,10 +70,13 @@
+             creation
+         }
+ 
+-        def wait = config.getWaitForParam(params.wait)
++        def wait = config.getWaitForParam(params.wait || params.waitCondition ? true : false)
+         if (wait) {
+             try {
+-                wait.waitFor(createAction)
++                wait.waitFor {
++                    def element = createAction.call()
++                    waitConditionWithDelegate(element).call(element) ? element : null
++                }
+             } catch (WaitTimeoutException e) {
+                 if (params.required) {
+                     throw e
+@@ -83,6 +88,17 @@
+         }
+     }
+ 
++    private Closure<?> waitConditionWithDelegate(Object delegate) {
++        if (params.waitCondition) {
++            Closure<?> waitCondition = params.waitCondition.clone()
++            waitCondition.resolveStrategy = DELEGATE_FIRST
++            waitCondition.delegate = delegate
++            waitCondition
++        } else {
++            { -> true }
++        }
++    }
++
+     private fromCache(Object[] args) {
+         def argsHash = Arrays.deepHashCode(args)
+         if (!cache.containsKey(argsHash)) {
+@@ -93,7 +109,7 @@
+ 
+     private invokeFactory(Object[] args) {
+         factory.delegate = createFactoryDelegate(args)
+-        factory.resolveStrategy = Closure.DELEGATE_FIRST
++        factory.resolveStrategy = DELEGATE_FIRST
+         factory(*args)
+     }
+ 
+\ No newline at end of file

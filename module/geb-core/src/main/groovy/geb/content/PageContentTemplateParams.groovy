@@ -55,6 +55,8 @@ class PageContentTemplateParams {
      */
     final toWait
 
+    Closure<?> waitCondition
+
     PageContentTemplateParams(PageContentTemplate owner, Map<String, ?> params) {
         def paramsToProcess = params == null ? Collections.emptyMap() : new HashMap<String, Object>(params)
 
@@ -83,6 +85,11 @@ class PageContentTemplateParams {
 
         wait = paramsToProcess.remove("wait")
         toWait = paramsToProcess.remove("toWait")
+
+        waitCondition = paramsToProcess.remove("waitCondition") as Closure<?>
+        if (waitCondition && !waitCondition instanceof Closure) {
+            throw new InvalidPageContent("")
+        }
 
         def unrecognizedParams = paramsToProcess.keySet() as TreeSet
         if (unrecognizedParams) {
