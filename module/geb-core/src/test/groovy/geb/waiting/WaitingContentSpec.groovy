@@ -143,6 +143,21 @@ class WaitingContentSpec extends WaitingSpec {
         waitContent.text() == "a"
     }
 
+    @Unroll
+    def "invalid waitCondition values"() {
+        when:
+        params = [waitCondition: value]
+
+        and:
+        content
+
+        then:
+        thrown IllegalArgumentException
+
+        where:
+        value << [[], [1], [1, 2, 3], ["asds", "asdas"]]
+    }
+
 
 }
 

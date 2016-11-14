@@ -55,6 +55,9 @@ class PageContentTemplateParams {
      */
     final toWait
 
+    /**
+     * The value of the 'waitCondition' option. Defaults to null.
+     */
     Closure<?> waitCondition
 
     PageContentTemplateParams(PageContentTemplate owner, Map<String, ?> params) {
