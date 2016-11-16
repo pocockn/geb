@@ -89,9 +89,12 @@ class PageContentTemplateParams {
         wait = paramsToProcess.remove("wait")
         toWait = paramsToProcess.remove("toWait")
 
-        waitCondition = paramsToProcess.remove("waitCondition") as Closure<?>
-        if (waitCondition && !waitCondition instanceof Closure) {
-            throw new InvalidPageContent("")
+        def waitConditionParam = paramsToProcess.remove("waitCondition")
+        if(waitConditionParam && waitConditionParam instanceof Closure) {
+            waitCondition = waitConditionParam as Closure<?>
+        }
+        else {
+            throw new InvalidPageContent("'waitCondition' parameter should be a closure")
         }
 
         def unrecognizedParams = paramsToProcess.keySet() as TreeSet

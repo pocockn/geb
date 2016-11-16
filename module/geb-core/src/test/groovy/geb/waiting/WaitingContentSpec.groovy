@@ -16,6 +16,7 @@
 package geb.waiting
 
 import geb.Page
+import geb.error.InvalidPageContent
 import geb.error.RequiredPageContentNotPresent
 import org.codehaus.groovy.runtime.powerassert.PowerAssertionError
 import spock.lang.Unroll
@@ -143,8 +144,17 @@ class WaitingContentSpec extends WaitingSpec {
         waitContent.text() == "a"
     }
 
+    def "content with waitCondition returns content"() {
+        when:
+        to StaticallySpecifiedContentPage
+        js.showIn(0)
+
+        then:
+        waitVisibleContent.text() == "a"
+    }
+
     @Unroll
-    def "invalid waitCondition values"() {
+    def "invalid waitCondition values, should be a closure"() {
         when:
         params = [waitCondition: value]
 
@@ -152,10 +162,10 @@ class WaitingContentSpec extends WaitingSpec {
         content
 
         then:
-        thrown IllegalArgumentException
+        thrown InvalidPageContent
 
         where:
-        value << [[], [1], [1, 2, 3], ["asds", "asdas"]]
+        value << [[], 1, [1, 2, 3], "asds"]
     }
 
 
