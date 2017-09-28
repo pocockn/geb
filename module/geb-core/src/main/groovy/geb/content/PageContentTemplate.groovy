@@ -70,7 +70,7 @@ class PageContentTemplate {
             creation
         }
 
-        def wait = config.getWaitForParam(params.wait || params.waitCondition ? true : false)
+        def wait = config.getWaitForParam(params.wait)
         if (wait) {
             try {
                 wait.waitFor {
@@ -85,6 +85,11 @@ class PageContentTemplate {
             }
         } else {
             createAction()
+        }
+
+        def waitCondition = config.getWaitConditionParam(params.waitCondition)
+        if (waitCondition) {
+
         }
     }
 
